@@ -5,7 +5,7 @@ const {ObjectId} = require("mongodb");
 
 const app = express();
 
-const url = "mongodb://127.0.0.1:27017";
+const url = "mongodb://admin:password@localhost:27017";
 const dbName = "todo";
 const collectionName = "items";
 
