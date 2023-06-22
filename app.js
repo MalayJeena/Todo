@@ -18,7 +18,7 @@ app.use(express.static("public"));
 app.get("/", (req, res) => {
   MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true})
     .then((client) => {
-      const db = client.db('todo');
+      const db = client.db(dbName);
       const collection = db.collection(collectionName);
       collection.find({}).toArray()
           .then((foundItems) => {
@@ -49,7 +49,7 @@ app.post("/", (req, res) => {
   var item = req.body.new_item;
   MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
       .then((client) => {
-        const db = client.db('todo');
+        const db = client.db(dbName);
         const collection = db.collection(collectionName);
           collection.insertOne({itemsname: item})
               .then((client) => {
@@ -79,7 +79,7 @@ app.post("/delete", (req,res) => {
 
   MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
       .then((client) => {
-        const db = client.db('todo');
+        const db = client.db(dbName);
         const collection = db.collection(collectionName);
           collection.deleteOne({_id: new ObjectId(itemId)})
               .then((client) => {
