@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { MongoClient } = require("mongodb");
+const {ObjectId} = require("mongodb");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.post("/", (req, res) => {
         const collection = db.collection(collectionName);
           collection.insertOne({itemsname: item})
               .then((client) => {
+                console.log("Inserted Successfully",client);
                   res.redirect('/');
               })
               .catch((error) => {
@@ -79,7 +81,7 @@ app.post("/delete", (req,res) => {
       .then((client) => {
         const db = client.db('todo');
         const collection = db.collection(collectionName);
-          collection.deleteOne({_id: itemId})
+          collection.deleteOne({_id: new ObjectId(itemId)})
               .then((client) => {
                   console.log("Deleted Successfully",client);
                   res.redirect('/');
