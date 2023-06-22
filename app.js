@@ -4,7 +4,7 @@ const { MongoClient } = require("mongodb");
 
 const app = express();
 
-const url = "mongodb://localhost:27017";
+const url = "mongodb://127.0.0.1:27017";
 const dbName = "todo";
 const collectionName = "items";
 
@@ -15,30 +15,28 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
-  MongoClient.connect(url, (err, client) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Internal server error");
-    } else {
-      const db = client.db(dbName);
+  MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true})
+    .then((client) => {
+      const db = client.db('todo');
       const collection = db.collection(collectionName);
-
-      collection.find().toArray((err, result) => {
-        if (err) {
-          console.log(err);
-          res.status(500).send("Internal server error");
-        } else {
-          items_name = result.map((item) => ({ id: item._id, name: item.itemName }));
-          console.log(result);
-          res.render("list", {
-            kindOfDay: "Today",
-            newListItem: items_name,
+      collection.find({}).toArray()
+          .then((foundItems) => {
+              console.log(foundItems);
+              res.render("list", {
+                  kindOfDay: "Today",
+                  newListItem: foundItems,
+              });
+          })
+          .catch((error) => {
+              console.log(error.message);
+              res.status(500).send("Internal server error");
+          })
+          .finally(() => {
+              client.close();
           });
-        }
-
-        client.close();
-      });
-    }
+  })
+  .catch((err) => {
+      throw err;
   });
 });
 
@@ -47,52 +45,59 @@ app.get("/:customListName", function (req, res) {
 });
 
 app.post("/", (req, res) => {
-  const item = req.body.new_item;
-
-  MongoClient.connect(url, (err, client) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Internal server error");
-    } else {
-      const db = client.db(dbName);
-      const collection = db.collection(collectionName);
-
-      collection.insertOne({ itemName: item }, (err, result) => {
-        if (err) {
-          console.log(err);
-        }
-
-        client.close();
-        res.redirect("/");
+  var item = req.body.new_item;
+  MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+      .then((client) => {
+        const db = client.db('todo');
+        const collection = db.collection(collectionName);
+          collection.insertOne({itemsname: item})
+              .then((client) => {
+                  res.redirect('/');
+              })
+              .catch((error) => {
+                  console.log(error.message);
+                  res.status(500).send("Internal server error");
+              })
+              .finally(() => {
+                  client.close();
+              });
+          })
+      .catch((err) => {
+          throw err;
       });
-    }
-  });
 });
 
-app.post("/delete", (req, res) => {
-  const item = req.body.checkbox;
 
-  MongoClient.connect(url, (err, client) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Internal server error");
-    } else {
-      const db = client.db(dbName);
-      const collection = db.collection(collectionName);
+app.post("/delete", (req,res) => {
+  //console.log(req.body.checkbox);
+  const itemId = req.body.checkbox;
+  // const objectId = ObjectId(itemId)
 
-      collection.deleteOne({ _id: item }, (err, result) => {
-        if (err) {
-          console.log(err);
-        } else {
-          console.log("deleted successfully");
-          res.redirect("/");
-        }
+  console.log(itemId);
 
-        client.close();
+  MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+      .then((client) => {
+        const db = client.db('todo');
+        const collection = db.collection(collectionName);
+          collection.deleteOne({_id: itemId})
+              .then((client) => {
+                  console.log("Deleted Successfully",client);
+                  res.redirect('/');
+              })
+              .catch((error) => {
+                  console.log(error.message);
+                  res.status(500).send("Internal server error");
+              })
+              .finally(() => {
+                  client.close();
+              });
+          })
+      .catch((err) => {
+          throw err;
       });
-    }
-  });
 });
+
+
 
 app.listen(4000, () => {
   console.log("Server is running on port 4000");
