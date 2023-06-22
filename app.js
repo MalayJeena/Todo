@@ -1,82 +1,99 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-// const day = require(__dirname+"/date.js");
-const Pool = require("pg").Pool;
-//console.log(day());
+const { MongoClient } = require("mongodb");
 
 const app = express();
 
-const pool = new Pool({
-    user: "postgres",
-	host: "localhost",
-	database: "todo",
-	password: "root",
-	port: 5432,
-});
+const url = "mongodb://localhost:27017";
+const dbName = "todo";
+const collectionName = "items";
 
-var items_name = [];    // [{1: book, 2: pen}] {id: 1, name: book}
+var items_name = [];
 
 app.set("view engine", "ejs");
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-
-
 app.get("/", (req, res) => {
-    // const todayDay = day();
+  MongoClient.connect(url, (err, client) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal server error");
+    } else {
+      const db = client.db(dbName);
+      const collection = db.collection(collectionName);
 
-    pool.query("SELECT id, itemname FROM items", (error, response) => {
-      if (error) {
-        console.log(error.message);
-        res.status(500).send("Internal server error");
-      } else {
-        items_name = response.rows.map((row) => ({ id: row.id, name: row.itemname }));
-        console.log(response.rows);
-        // console.log(items_name);
-        res.render("list", {
-          kindOfDay: "Today",
-          newListItem: items_name,
-        });
-      }
-    });
-    
+      collection.find().toArray((err, result) => {
+        if (err) {
+          console.log(err);
+          res.status(500).send("Internal server error");
+        } else {
+          items_name = result.map((item) => ({ id: item._id, name: item.itemName }));
+          console.log(result);
+          res.render("list", {
+            kindOfDay: "Today",
+            newListItem: items_name,
+          });
+        }
+
+        client.close();
+      });
+    }
+  });
 });
 
-
-app.get("/:customListName", function(req,res){
-    console.log(req.params.customListName);
+app.get("/:customListName", function (req, res) {
+  console.log(req.params.customListName);
 });
-
 
 app.post("/", (req, res) => {
-    var item = req.body.new_item;
-    // items_name.push(item);
-    //console.log(item_name);
-    pool.query("INSERT INTO items(itemName) VALUES($1)", [item], (error, response) => {
-        if (error) {
-            console.log(error.message);
+  const item = req.body.new_item;
+
+  MongoClient.connect(url, (err, client) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal server error");
+    } else {
+      const db = client.db(dbName);
+      const collection = db.collection(collectionName);
+
+      collection.insertOne({ itemName: item }, (err, result) => {
+        if (err) {
+          console.log(err);
         }
-    });
-    res.redirect("/");
+
+        client.close();
+        res.redirect("/");
+      });
+    }
+  });
 });
 
+app.post("/delete", (req, res) => {
+  const item = req.body.checkbox;
 
-app.post("/delete", (req,res) => {
-    //console.log(req.body.checkbox);
-    const item = req.body.checkbox;
-    pool.query("DELETE FROM items WHERE id=$1",[item], (err, result) => {
-        if (err){
-            console.log(err.message);
-        }else {
-            console.log("deleted successfuly")
-            res.redirect("/");
+  MongoClient.connect(url, (err, client) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Internal server error");
+    } else {
+      const db = client.db(dbName);
+      const collection = db.collection(collectionName);
+
+      collection.deleteOne({ _id: item }, (err, result) => {
+        if (err) {
+          console.log(err);
+        } else {
+          console.log("deleted successfully");
+          res.redirect("/");
         }
-    });
 
+        client.close();
+      });
+    }
+  });
 });
-
-
 
 app.listen(4000, () => {
-    console.log("Server is running on port 4000");
+  console.log("Server is running on port 4000");
 });
